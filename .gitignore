@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Database & WhatsApp Session (CRITICAL - DO NOT COMMIT)
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Environment files
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# System
+.DS_Store
+Thumbs.db
