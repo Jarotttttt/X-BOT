@@ -3,30 +3,19 @@ import { delay } from "zapo-js";
 const FAKE_EDIT_TYPE = 14;
 const activeEdits = new Set();
 
-async function getGroupParticipants(sock, jid) {
-  if (!jid.endsWith("@g.us") || !sock?.group?.queryGroupMetadata) return [];
-  try {
-    const meta = await sock.group.queryGroupMetadata(jid);
-    return meta?.participants?.map((p) => p.jid || p.phoneNumber || p.lid).filter(Boolean) || [];
-  } catch (err) {
-    console.error("[fakeEdit] gagal query group metadata:", err);
-    return [];
-  }
-}
-
 async function fakeEdit(sock, options) {
-  const { jid, id: stanzaId, text, withMentions = false } = options ?? {};
-  if (!sock || !jid || !stanzaId || !text) return;
+  const { jid, id: stanzaId, text } = options ?? {};
+  if (!sock || !jid || !stanzaId || !text) {
+    console.log("[fakemsg] parameter kurang lengkap:", { jid, stanzaId, text });
+    return;
+  }
 
-  if (activeEdits.has(stanzaId)) return;
-  activeEdits.add(stanzaId);
+  const operationKey = `${jid}:${stanzaId}`;
+  if (activeEdits.has(operationKey)) return;
+  activeEdits.add(operationKey);
 
   try {
-    const participants = withMentions ? await getGroupParticipants(sock, jid) : [];
-    const contextInfo = {
-      isGroupStatus: false,
-      ...(participants.length > 0 ? { mentionedJid: participants } : {}),
-    };
+    console.log("[fakemsg] mulai proses ke stanzaId:", stanzaId, "dengan teks:", text);
 
     const temp = await sock.message.send(jid, {
       extendedTextMessage: {
@@ -35,6 +24,7 @@ async function fakeEdit(sock, options) {
       },
     });
     const tempId = temp?.id;
+    console.log("[fakemsg] temp 1 id:", tempId);
     if (!tempId) return;
 
     const edit = await sock.message.send(
@@ -50,7 +40,7 @@ async function fakeEdit(sock, options) {
           editedMessage: {
             extendedTextMessage: {
               text,
-              contextInfo,
+              contextInfo: { isGroupStatus: false },
             },
           },
         },
@@ -58,6 +48,7 @@ async function fakeEdit(sock, options) {
       { id: stanzaId },
     );
     const tempId2 = edit?.id;
+    console.log("[fakemsg] temp 2 id:", tempId2);
     if (!tempId2) return;
 
     await delay(100);
@@ -65,17 +56,18 @@ async function fakeEdit(sock, options) {
     await Promise.allSettled([
       sock.message.send(jid, {
         type: "revoke",
-        target: { id: tempId, fromMe: true },
+        target: { remoteJid: jid, id: tempId, fromMe: true },
       }),
       sock.message.send(jid, {
         type: "revoke",
-        target: { id: tempId2, fromMe: true },
+        target: { remoteJid: jid, id: tempId2, fromMe: true },
       }),
     ]);
+    console.log("[fakemsg] selesai dikirim & di-revoke untuk stanzaId:", stanzaId);
   } catch (err) {
-    console.error("[fakeEdit] gagal:", err);
+    console.error("[fakemsg] gagal:", err?.message || err);
   } finally {
-    activeEdits.delete(stanzaId);
+    activeEdits.delete(operationKey);
   }
 }
 

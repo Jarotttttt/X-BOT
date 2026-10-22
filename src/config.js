@@ -6,7 +6,7 @@ import { createSqliteStore } from "@zapo-js/store-sqlite";
 
 config();
 
-const requiredEnv = Object.freeze(["BOT_NUMBER", "PAIRING_CODE", "SESSION_ID"]);
+const requiredEnv = Object.freeze(["BOT_NUMBER", "SESSION_ID"]);
 
 const missing = requiredEnv.filter((key) => !process.env[key]?.trim());
 
@@ -24,7 +24,7 @@ if (!botNumber) {
 	throw new Error("BOT_NUMBER must contain a valid WhatsApp number.");
 }
 
-const res = (...paths) => path.resolve(import.meta.dirname, ...paths);
+const res = (...paths) => path.resolve(import.meta.dirname, "..", ...paths);
 const dataRoot = process.env.ICEL_DATA_DIR?.trim()
   ? path.resolve(process.env.ICEL_DATA_DIR)
   : res("data");
@@ -58,8 +58,12 @@ const store = createStore({
 
 export default Object.freeze({
 	botNumber,
-  pairingCode: process.env.PAIRING_CODE.trim(),
   sessionId: process.env.SESSION_ID.trim(),
   path: pathConfig,
   store,
+  ai: {
+    baseUrl: process.env.ROUTER_BASE_URL?.trim() || "http://localhost:20128/v1",
+    apiKey: process.env.ROUTER_API_KEY?.trim() || "",
+    model: process.env.ROUTER_MODEL?.trim() || "combo",
+  },
 });

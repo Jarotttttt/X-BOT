@@ -38,6 +38,29 @@ export function toUserJid(jid) {
   return normalizeJid(jid);
 }
 
+export function unwrapAll(message) {
+  if (!message) return null;
+  let msg = message;
+  for (let i = 0; i < 15; i++) {
+    const inner =
+      msg.ephemeralMessage?.message ??
+      msg.viewOnceMessage?.message ??
+      msg.viewOnceMessageV2?.message ??
+      msg.viewOnceMessageV2Extension?.message ??
+      msg.documentWithCaptionMessage?.message ??
+      msg.groupStatusMessage?.message ??
+      msg.groupStatusMessageV2?.message ??
+      msg.botForwardedMessage?.message ??
+      msg.deviceSentMessage?.message ??
+      msg.groupMentionedMessage?.message ??
+      msg.botInvokeMessage?.message;
+
+    if (!inner) break;
+    msg = inner;
+  }
+  return msg;
+}
+
 export function serializeMessage(message) {
   if (!message) return null;
   return Buffer.from(

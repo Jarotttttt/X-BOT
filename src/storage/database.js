@@ -8,9 +8,10 @@ mkdirSync(path.dirname(cfg.path.database), {
   recursive: true,
 });
 
-const db = new Database(cfg.path.database);
+const db = new Database(cfg.path.database, { timeout: 5000 });
 
 db.exec(`
+    PRAGMA busy_timeout = 5000;
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
     PRAGMA synchronous = NORMAL;
@@ -18,11 +19,6 @@ db.exec(`
     PRAGMA mmap_size = 268435456;
     PRAGMA cache_size = -32000;
     PRAGMA temp_store = MEMORY;
-
-    DROP TABLE IF EXISTS theme;
-    DROP TABLE IF EXISTS chats;
-    DROP TABLE IF EXISTS self_settings;
-    DROP TABLE IF EXISTS self_groups;
 
      CREATE TABLE IF NOT EXISTS fake_text (
          id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -43,8 +39,18 @@ db.exec(`
          UNIQUE (remote_jid, key_id)
      ) STRICT;
 
-     CREATE INDEX IF NOT EXISTS idx_messages_key ON messages(key_id);
-     CREATE INDEX IF NOT EXISTS idx_messages_ts ON messages(timestamp);
+      CREATE INDEX IF NOT EXISTS idx_messages_key ON messages(key_id);
+      CREATE INDEX IF NOT EXISTS idx_messages_ts ON messages(timestamp);
+
+      CREATE TABLE IF NOT EXISTS ai_chat_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          jid TEXT NOT NULL,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch('now'))
+      ) STRICT;
+
+      CREATE INDEX IF NOT EXISTS idx_ai_history_jid ON ai_chat_history(jid);
 `);
 
 const stmt = {
@@ -115,6 +121,30 @@ const stmt = {
             INSERT INTO fake_text (id, text)
             VALUES (1, :text)
             ON CONFLICT (id) DO UPDATE SET text = excluded.text
+        `),
+  },
+
+  aiHistory: {
+    insert: db.prepare(`
+            INSERT INTO ai_chat_history (jid, role, content)
+            VALUES (:jid, :role, :content)
+        `),
+
+    getRecent: db.prepare(`
+            SELECT role, content
+            FROM (
+                SELECT id, role, content
+                FROM ai_chat_history
+                WHERE jid = :jid
+                ORDER BY id DESC
+                LIMIT :limit
+            )
+            ORDER BY id ASC
+        `),
+
+    prune: db.prepare(`
+            DELETE FROM ai_chat_history
+            WHERE created_at < :threshold
         `),
   },
 };

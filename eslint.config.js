@@ -2,6 +2,7 @@ import js from "@eslint/js";
 
 const nodeGlobals = {
   Buffer: "readonly",
+  AbortController: "readonly",
   console: "readonly",
   fetch: "readonly",
   process: "readonly",

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "WhatsApp stealth moderation and automation bot powered by Zapo JS.",
   "type": "module",
-  "main": "main.js",
+  "main": "src/app.js",
   "license": "MIT",
   "author": "dnz",
   "engines": {
@@ -21,9 +21,13 @@
     "test": "node --import=./tests/setup.js --test"
   },
   "dependencies": {
+    "@roamhq/wrtc": "^0.10.0",
     "@zapo-js/store-sqlite": "latest",
+    "@zapo-js/voip": "^1.4.0",
     "better-sqlite3": "latest",
     "dotenv": "latest",
+    "ffmpeg-static": "^5.3.0",
+    "libmlow-wasm-fork": "^0.2.0",
     "pino": "latest",
     "pino-pretty": "latest",
     "ws": "latest",
@@ -35,6 +39,7 @@
   },
   "allowScripts": {
     "better-sqlite3": true,
-    "zapo-js": true
+    "zapo-js": true,
+    "ffmpeg-static": true
   }
 }

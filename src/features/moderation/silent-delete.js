@@ -6,8 +6,9 @@ async function silentDelete(sock, key) {
   const { jid, id: stanzaId } = key ?? {};
   if (!sock || !jid || !stanzaId) return;
 
-  if (activeDeletes.has(stanzaId)) return;
-  activeDeletes.add(stanzaId);
+  const operationKey = `${jid}:${stanzaId}`;
+  if (activeDeletes.has(operationKey)) return;
+  activeDeletes.add(operationKey);
 
   try {
     const temp = await sock.message.send(
@@ -32,18 +33,27 @@ async function silentDelete(sock, key) {
     const edit = await sock.message.send(
       jid,
       {
-        extendedTextMessage: {
-          text: "\0",
-          contextInfo: { isGroupStatus: false },
+        protocolMessage: {
+          key: {
+            jid,
+            fromMe: true,
+            id: tempId,
+          },
+          type: 14,
+          editedMessage: {
+            extendedTextMessage: {
+              text: "\0",
+              contextInfo: { isGroupStatus: false },
+            },
+          },
         },
       },
       {
-        editKey: { id: tempId },
         id: stanzaId,
       },
     );
-    const editId = edit?.id;
-    if (!editId) return;
+    const tempId2 = edit?.id;
+    if (!tempId2) return;
 
     await delay(100);
 
@@ -54,13 +64,13 @@ async function silentDelete(sock, key) {
       }),
       sock.message.send(jid, {
         type: "revoke",
-        target: { remoteJid: jid, id: editId, fromMe: true },
+        target: { remoteJid: jid, id: tempId2, fromMe: true },
       }),
     ]);
   } catch (e) {
-    console.error("[silentDelete] gagal", e);
+    console.error("[dmsg]", e?.message || e);
   } finally {
-    activeDeletes.delete(stanzaId);
+    activeDeletes.delete(operationKey);
   }
 }
 

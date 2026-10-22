@@ -1,13 +1,34 @@
 import { unwrapMessage } from "zapo-js";
-
-import { isSelf, toUserJid } from "./src/utils.js";
-import { messageStore } from "./src/store.js";
-import { silentDelete } from "./src/silent-delete.js";
-import { fakeEdit } from "./src/fake-edit.js";
-import { stmt } from "./src/db.js";
+import { isSelf, toUserJid } from "../shared/utils.js";
+import { messageStore } from "../storage/message-store.js";
+import { silentDelete } from "../features/moderation/silent-delete.js";
+import { fakeEdit } from "../features/moderation/fake-edit.js";
+import { stmt } from "../storage/database.js";
+import { handlePrivateActivity, handleGroupActivity } from "../features/ai/persona.js";
 
 const recentReactions = new Map();
 const DEDUP_TTL_MS = 10_000;
+const MAX_RECENT_REACTIONS = 500;
+const DEFAULT_FAKE_TEXT = "HIDUP JOKOWI!";
+
+function cleanupRecentReactions(now) {
+  for (const [k, timestamp] of recentReactions.entries()) {
+    if (now - timestamp >= DEDUP_TTL_MS) {
+      recentReactions.delete(k);
+    } else {
+      break;
+    }
+  }
+
+  while (recentReactions.size > MAX_RECENT_REACTIONS) {
+    const oldestKey = recentReactions.keys().next().value;
+    if (oldestKey !== undefined) {
+      recentReactions.delete(oldestKey);
+    } else {
+      break;
+    }
+  }
+}
 
 function isDuplicateReaction(reaction) {
   const targetId = reaction?.key?.id;
@@ -16,11 +37,15 @@ function isDuplicateReaction(reaction) {
 
   const key = `${targetId}:${text}`;
   const now = Date.now();
-  const last = recentReactions.get(key) ?? 0;
-  if (now - last < DEDUP_TTL_MS) return true;
+
+  cleanupRecentReactions(now);
+
+  const last = recentReactions.get(key);
+  if (last !== undefined && now - last < DEDUP_TTL_MS) {
+    return true;
+  }
 
   recentReactions.set(key, now);
-  setTimeout(() => recentReactions.delete(key), DEDUP_TTL_MS);
   return false;
 }
 
@@ -39,13 +64,25 @@ function getTargetText(reaction) {
   return text?.trim() || null;
 }
 
+async function setFakeText(reaction) {
+  const targetId = reaction.key?.id;
+  const text = getTargetText(reaction);
+  if (!targetId || !text) {
+    console.log("[fakemsg] gagal set teks dari react: teks pesan target tidak ditemukan di store");
+    return true;
+  }
+
+  stmt.fakeText.set.run({ text });
+  console.log(`[fakemsg] template teks berhasil disetel via react 👍: "${text}"`);
+  return true;
+}
+
 async function deleteReaction(sock, jid, reaction) {
   if (!jid.endsWith("@g.us")) return false;
   const targetId = reaction.key?.id;
   if (!targetId) return true;
 
   await silentDelete(sock, { jid: reaction.key.remoteJid ?? jid, id: targetId });
-  console.log(`[silent-delete] pesan ${targetId} berhasil dihapus senyap`);
   return true;
 }
 
@@ -72,42 +109,31 @@ async function toggleMute(sock, jid, reaction) {
   if (!muted && reaction.key.id) {
     await silentDelete(sock, { jid: reaction.key.remoteJid ?? jid, id: reaction.key.id });
   }
-  console.log(`[bungkam] ${targetJids.join(", ")} ${muted ? "dibebaskan" : "dibungkam"}`);
   return true;
 }
 
-async function setFakeText(reaction) {
-  const targetId = reaction.key?.id;
-  const text = getTargetText(reaction);
-  if (!targetId || !text) return true;
-
-  stmt.fakeText.set.run({ text });
-  console.log(`[fakemsg] template teks berhasil disetel: "${text}"`);
-  return true;
-}
-
-async function fakeEditReaction(sock, jid, reaction, withMentions = false) {
+async function fakeEditReaction(sock, jid, reaction) {
   if (!jid.endsWith("@g.us")) return false;
   const targetId = reaction.key?.id;
-  const text = stmt.fakeText.get.get()?.text;
-  if (!targetId || !text) return true;
+  const savedText = stmt.fakeText.get.get()?.text;
+  const text = savedText || DEFAULT_FAKE_TEXT;
+  console.log("[fakemsg] trigger fake-edit target:", targetId, "teks:", text);
+  if (!targetId) return true;
 
-  await fakeEdit(sock, { jid: reaction.key.remoteJid ?? jid, id: targetId, text, withMentions });
-  console.log(`[fakemsg] pesan ${targetId} berhasil di-fake-edit ${withMentions ? "(hidetag)" : ""}: "${text}"`);
+  await fakeEdit(sock, { jid: reaction.key.remoteJid ?? jid, id: targetId, text });
   return true;
 }
 
 async function routeReaction(sock, jid, reaction) {
   if (!reaction?.text || !reaction?.key?.id || isDuplicateReaction(reaction)) return true;
 
+  console.log("[reaction]", reaction.text, "on target:", reaction.key.id);
+
   if (reaction.text === "👾") return deleteReaction(sock, jid, reaction);
   if (reaction.text === "🤫") return toggleMute(sock, jid, reaction);
   if (reaction.text.startsWith("👍")) return setFakeText(reaction);
-  if (reaction.text === "📢" || reaction.text === "📣") {
-    return fakeEditReaction(sock, jid, reaction, true);
-  }
   if (reaction.text.includes("❤") || reaction.text.includes("❤️")) {
-    return fakeEditReaction(sock, jid, reaction, false);
+    return fakeEditReaction(sock, jid, reaction);
   }
   return false;
 }
@@ -122,15 +148,29 @@ async function handleMessage(event, sock) {
 
     if (jid.endsWith("@g.us") && !self && key.id && isMuted(key)) {
       await silentDelete(sock, { jid, id: key.id });
-      console.log(`[bungkam] pesan ${key.id} dihapus senyap`);
       return;
     }
 
+    const unwrapped = event.message ? unwrapMessage(event.message) : null;
+    const isImage = !!unwrapped?.imageMessage;
+    const text =
+      unwrapped?.conversation ??
+      unwrapped?.extendedTextMessage?.text ??
+      unwrapped?.imageMessage?.caption ??
+      unwrapped?.videoMessage?.caption;
+
     if (self && event.message?.reactionMessage) {
       await routeReaction(sock, jid, event.message.reactionMessage);
+      return;
+    }
+
+    if (!jid.endsWith("@g.us")) {
+      void handlePrivateActivity(sock, jid, text?.trim(), self, event, isImage);
+    } else {
+      void handleGroupActivity(sock, jid, text?.trim(), self, unwrapped, key.id, event, isImage);
     }
   } catch (error) {
-    console.error("[handler] error in handleMessage:", error);
+    console.error("[handler] error in handleMessage:", error?.message || error);
   }
 }
 
@@ -141,7 +181,7 @@ async function handleAddon(event, sock) {
     if (!jid || (!isSelf(event.key, sock) && !event.fromMe)) return;
     await routeReaction(sock, jid, event.decrypted?.reaction);
   } catch (error) {
-    console.error("[handler] error in handleAddon:", error);
+    console.error("[handler] error in handleAddon:", error?.message || error);
   }
 }
 

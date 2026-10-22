@@ -1,6 +1,5 @@
-import { unwrapMessage } from "zapo-js";
-import { db, stmt } from "./db.js";
-import { serializeMessage, deserializeMessage, toTimestamp } from "./utils.js";
+import { db, stmt } from "./database.js";
+import { serializeMessage, deserializeMessage, toTimestamp, unwrapAll } from "../shared/utils.js";
 
 const UNSTORABLE_STUBS = new Set([
   "protocolMessage",
@@ -20,15 +19,14 @@ function isStorableMessage(message) {
   const raw = message.message;
   if (!raw) return false;
 
-  const unwrapped = unwrapMessage(raw);
+  const unwrapped = unwrapAll(raw);
   if (!unwrapped) return false;
 
   if (
     unwrapped.protocolMessage ||
     unwrapped.reactionMessage ||
     unwrapped.encReactionMessage ||
-    unwrapped.senderKeyDistributionMessage ||
-    unwrapped.messageContextInfo
+    unwrapped.senderKeyDistributionMessage
   ) {
     return false;
   }
@@ -63,8 +61,9 @@ class MessageStore {
     try {
       const nowSec = Math.floor((Date.now() - RETENTION_MS) / 1000);
       const res = stmt.messages.pruneOld.run({ threshold: nowSec });
-      if (res.changes > 0) {
-        console.log(`[message-store] dibersihkan ${res.changes} pesan lama (> 3 hari)`);
+      const aiRes = stmt.aiHistory.prune.run({ threshold: nowSec });
+      if (res.changes > 0 || aiRes.changes > 0) {
+        console.log(`[message-store] dibersihkan ${res.changes} pesan dan ${aiRes.changes} riwayat AI lama (> 3 hari)`);
         db.pragma("wal_checkpoint(TRUNCATE)");
       }
     } catch (err) {
@@ -82,12 +81,12 @@ class MessageStore {
     const raw = serializeMessage(message);
     if (!raw) return;
 
+    const ts = toTimestamp(message.messageTimestamp ?? message.timestampSeconds) ?? Math.floor(Date.now() / 1000);
+
     return stmt.messages.upsert.run({
       remoteJid,
       keyId,
-      timestamp: toTimestamp(
-        message.messageTimestamp ?? message.timestampSeconds,
-      ),
+      timestamp: ts,
       raw,
     });
   }
