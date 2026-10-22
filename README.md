@@ -26,7 +26,8 @@ Reaksi harus berasal dari akun bot/owner. Perintah yang sama dideduplikasi semen
 
 ### Asisten AI Icel
 
-- Icel memperkenalkan dirinya sebagai **asisten AI Xyura**, bukan sebagai Xyura.
+- Icel adalah asisten AI Xyura yang membalas dengan gaya bahasa Indonesia Gen Z yang santai dan natural; tetap jujur sebagai AI jika ditanya, tanpa mengaku sebagai Xyura.
+- Karena pesan sudah masuk ke WhatsApp Xyura, Icel menjawab langsung dan tidak berulang kali mengatakan akan menyampaikan pesan kepada Xyura atau menyuruh pengirim menghubunginya.
 - Chat pribadi: menunggu sekitar satu menit sebelum mengirim balasan. Jika Xyura membalas sendiri sebelum timer berakhir, timer AI dibatalkan. Setelah sesi AI aktif, pesan baru dapat memicu balasan langsung.
 - Grup: menanggapi pesan yang menyebut atau membalas akun Xyura, setelah jeda sekitar satu menit.
 - Menggunakan hingga 12 pesan riwayat dan dapat mengirim gambar ke model untuk dianalisis.
