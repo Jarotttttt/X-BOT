@@ -1,7 +1,7 @@
 {
   "name": "x-bot",
   "version": "1.0.0",
-  "description": "WhatsApp stealth moderation and automation bot powered by Zapo JS.",
+  "description": "WhatsApp moderation and VOIP automation bot powered by Zapo JS.",
   "type": "module",
   "main": "src/app.js",
   "license": "MIT",

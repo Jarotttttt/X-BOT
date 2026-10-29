@@ -42,15 +42,6 @@ db.exec(`
       CREATE INDEX IF NOT EXISTS idx_messages_key ON messages(key_id);
       CREATE INDEX IF NOT EXISTS idx_messages_ts ON messages(timestamp);
 
-      CREATE TABLE IF NOT EXISTS ai_chat_history (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          jid TEXT NOT NULL,
-          role TEXT NOT NULL,
-          content TEXT NOT NULL,
-          created_at INTEGER NOT NULL DEFAULT (unixepoch('now'))
-      ) STRICT;
-
-      CREATE INDEX IF NOT EXISTS idx_ai_history_jid ON ai_chat_history(jid);
 `);
 
 const stmt = {
@@ -124,29 +115,6 @@ const stmt = {
         `),
   },
 
-  aiHistory: {
-    insert: db.prepare(`
-            INSERT INTO ai_chat_history (jid, role, content)
-            VALUES (:jid, :role, :content)
-        `),
-
-    getRecent: db.prepare(`
-            SELECT role, content
-            FROM (
-                SELECT id, role, content
-                FROM ai_chat_history
-                WHERE jid = :jid
-                ORDER BY id DESC
-                LIMIT :limit
-            )
-            ORDER BY id ASC
-        `),
-
-    prune: db.prepare(`
-            DELETE FROM ai_chat_history
-            WHERE created_at < :threshold
-        `),
-  },
 };
 
 export { db, stmt };

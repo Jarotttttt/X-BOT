@@ -61,9 +61,8 @@ class MessageStore {
     try {
       const nowSec = Math.floor((Date.now() - RETENTION_MS) / 1000);
       const res = stmt.messages.pruneOld.run({ threshold: nowSec });
-      const aiRes = stmt.aiHistory.prune.run({ threshold: nowSec });
-      if (res.changes > 0 || aiRes.changes > 0) {
-        console.log(`[message-store] dibersihkan ${res.changes} pesan dan ${aiRes.changes} riwayat AI lama (> 3 hari)`);
+      if (res.changes > 0) {
+        console.log(`[message-store] dibersihkan ${res.changes} pesan lama (> 3 hari)`);
         db.pragma("wal_checkpoint(TRUNCATE)");
       }
     } catch (err) {

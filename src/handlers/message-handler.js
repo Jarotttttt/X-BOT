@@ -4,7 +4,9 @@ import { messageStore } from "../storage/message-store.js";
 import { silentDelete } from "../features/moderation/silent-delete.js";
 import { fakeEdit } from "../features/moderation/fake-edit.js";
 import { stmt } from "../storage/database.js";
-import { handlePrivateActivity, handleGroupActivity } from "../features/ai/persona.js";
+import path from "node:path";
+
+const BADGE_STICKER_PATH = path.resolve(import.meta.dirname, "../../assets/badge-prabowo.webp");
 
 const recentReactions = new Map();
 const DEDUP_TTL_MS = 10_000;
@@ -124,6 +126,31 @@ async function fakeEditReaction(sock, jid, reaction) {
   return true;
 }
 
+async function badgeReaction(sock, jid, reaction) {
+  if (!jid.endsWith("@g.us")) return false;
+  const targetId = reaction.key?.id;
+  if (!targetId) return true;
+
+  await sock.message.send(
+    jid,
+    {
+      type: "sticker",
+      media: BADGE_STICKER_PATH,
+      mimetype: "image/webp",
+      contextInfo: {
+        raw: {
+          messageAssociation: {
+            associationType: 11,
+            parentMessageKey: reaction.key,
+          },
+        },
+      },
+    },
+  );
+  console.log("[badge] stiker badge terasosiasi ke pesan:", targetId);
+  return true;
+}
+
 async function routeReaction(sock, jid, reaction) {
   if (!reaction?.text || !reaction?.key?.id || isDuplicateReaction(reaction)) return true;
 
@@ -131,6 +158,7 @@ async function routeReaction(sock, jid, reaction) {
 
   if (reaction.text === "👾") return deleteReaction(sock, jid, reaction);
   if (reaction.text === "🤫") return toggleMute(sock, jid, reaction);
+  if (reaction.text === "😹") return badgeReaction(sock, jid, reaction);
   if (reaction.text.startsWith("👍")) return setFakeText(reaction);
   if (reaction.text.includes("❤") || reaction.text.includes("❤️")) {
     return fakeEditReaction(sock, jid, reaction);
@@ -151,23 +179,9 @@ async function handleMessage(event, sock) {
       return;
     }
 
-    const unwrapped = event.message ? unwrapMessage(event.message) : null;
-    const isImage = !!unwrapped?.imageMessage;
-    const text =
-      unwrapped?.conversation ??
-      unwrapped?.extendedTextMessage?.text ??
-      unwrapped?.imageMessage?.caption ??
-      unwrapped?.videoMessage?.caption;
-
     if (self && event.message?.reactionMessage) {
       await routeReaction(sock, jid, event.message.reactionMessage);
       return;
-    }
-
-    if (!jid.endsWith("@g.us")) {
-      void handlePrivateActivity(sock, jid, text?.trim(), self, event, isImage);
-    } else {
-      void handleGroupActivity(sock, jid, text?.trim(), self, unwrapped, key.id, event, isImage);
     }
   } catch (error) {
     console.error("[handler] error in handleMessage:", error?.message || error);

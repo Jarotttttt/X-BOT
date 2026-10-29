@@ -61,9 +61,4 @@ export default Object.freeze({
   sessionId: process.env.SESSION_ID.trim(),
   path: pathConfig,
   store,
-  ai: {
-    baseUrl: process.env.ROUTER_BASE_URL?.trim() || "http://localhost:20128/v1",
-    apiKey: process.env.ROUTER_API_KEY?.trim() || "",
-    model: process.env.ROUTER_MODEL?.trim() || "combo",
-  },
 });
