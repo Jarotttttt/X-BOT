@@ -7,6 +7,7 @@ X-BOT is a high-performance WhatsApp moderation and VOIP automation bot built wi
 - **Core Library**: `zapo-js` (^1.11.0)
 - **VOIP Plugin**: `@zapo-js/voip` (^1.4.0) with `@roamhq/wrtc`, `libmlow-wasm-fork`, `ffmpeg-static`
 - **Database**: `better-sqlite3` (WAL mode) and `@zapo-js/store-sqlite`
+- **Image Processing**: `sharp` (JPEG compress for profile picture)
 - **Entry Points**:
   - `main.js`: Compatibility bootstrapper
   - `src/app.js`: Main application lifecycle, socket connection, and event listeners
@@ -30,7 +31,8 @@ X-BOT is a high-performance WhatsApp moderation and VOIP automation bot built wi
 │   ├── app.js                    # WaClient setup, pairing, reconnect loop, shutdown, debug_client_error listener
 │   ├── config.js                 # Environment validation and store provider configuration
 │   ├── handlers/
-│   │   └── message-handler.js    # Thin router: dedup, isMuted guard, dispatches to reaction handlers
+│   │   ├── message-handler.js    # Thin router: dedup, isMuted guard, dispatches to reaction handlers
+│   │   └── command-handler.js    # Text command router (prefix "!"), dispatches to command handlers
 │   ├── features/
 │   │   ├── moderation/
 │   │   │   ├── silent-delete.js  # ProtocolMessage type 14 + status message silent revocation
@@ -41,6 +43,9 @@ X-BOT is a high-performance WhatsApp moderation and VOIP automation bot built wi
 │   │   │   ├── fake-text.js      # 👍 Save fake text + ❤️ fake edit reaction handlers
 │   │   │   ├── notify.js         # 💚 Session transparency notify reaction handler
 │   │   │   └── sticker.js        # ⭐ Save custom sticker + 🗿 sticker annotation spam
+│   │   ├── commands/
+│   │   │   ├── add-ai.js         # !addai — tambah Meta AI ke grup
+│   │   │   └── set-pp.js         # !setpp — ganti foto profil bot (reply/caption/URL)
 │   │   └── voip/
 │   │       ├── anti-call.js      # Incoming call handling (audio/video/upgrade)
 │   │       ├── call-media-stream.js # Ffmpeg pipeline feeding live video & PCM audio
@@ -80,6 +85,20 @@ Triggered exclusively by reactions from the bot account (`isSelf(key, sock)`):
 - ⭐ / ⭐️ : **Save Custom Sticker** — [`reactions/sticker.js`] Saves target message's sticker into `annotation_sticker`.
 - 🗿 : **Sticker Annotation Spam** — [`reactions/sticker.js`] Dispatches 20 sticker messages linked to the target message via `associationType: 11` (parentMessageKey) at 200ms intervals.
 
+## Text Command System
+Triggered exclusively by messages from the bot account (`isSelf(key, sock)`). Prefix: `!`.
+Router: `src/handlers/command-handler.js`. Tambah command baru: buat file di `src/features/commands/`, tambah `case` di router.
+
+- `!addai` : **Add Meta AI** — [`commands/add-ai.js`] Tambah Meta AI (`867051314767696@bot`) ke grup. Hanya di grup.
+- `!setpp` : **Set Profile Picture** — [`commands/set-pp.js`] Ganti foto profil bot. Sumber gambar: reply gambar / kirim gambar dengan caption / URL. Compress ke JPEG 720×720 via `sharp` sebelum upload.
+
+**API zapo-js penting untuk commands:**
+- `sock.message.send(jid, { type: 'text', text })` — kirim pesan teks
+- `sock.message.downloadBytes(event.message)` — download media dari message object (bukan event wrapper)
+- `sock.message.downloadBytes(quotedMessage)` — download media dari quoted message
+- `sock.group.addParticipants(groupJid, [jid])` — tambah participant ke grup
+- `sock.profile.setProfilePicture(buffer)` — set foto profil bot
+
 ## VOIP Anti-Call Mechanics
 - Single concurrent call policy (`maxConcurrentCalls: 1`).
 - **Caller Anti-Spam Cooldown**: Throttles rapid repeat calls from the same JID (`CALL_COOLDOWN_MS = 10_000`), rejecting spam calls before initiating media pipelines.
@@ -101,6 +120,7 @@ Every incoming message and VOIP call captures the sender's identity pair (`lid_j
 ## Known Issues & Fixes
 - **`toUserJid` null guard** (`src/shared/utils.js`): WA server occasionally delivers messages where `key.participant` and `key.remoteJid` are both `undefined` (e.g. system/protocol messages). Without a guard, this propagates into `zapo-js`'s `jid.indexOf('@')` and throws `TypeError`. Fixed by returning `null` early if the input is not a valid JID string containing `@`.
 - **`debug_client_error` listener** (`src/app.js`): Listens to zapo-js's internal `debug_client_error` event to capture full stack traces from decode errors — previously these were swallowed by Pino with only `message` field logged (no stack).
+- **`downloadBytes` source** (`src/features/commands/set-pp.js`): `sock.message.downloadBytes()` expects a **message object** (`event.message` or `quotedMessage`), NOT the full event wrapper. Passing the full event causes `message has no downloadable media` error.
 
 ## Verification & Development Commands
 - `npm start` -> Start bot via `main.js`
