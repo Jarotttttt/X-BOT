@@ -31,6 +31,7 @@
     "libmlow-wasm-fork": "^0.2.0",
     "pino": "latest",
     "pino-pretty": "latest",
+    "sharp": "^0.35.5",
     "ws": "latest",
     "zapo-js": "^1.11.0"
   },

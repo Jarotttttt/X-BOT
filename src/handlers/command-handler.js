@@ -1,5 +1,6 @@
 import { isSelf } from "../shared/utils.js";
 import { addAiCommand } from "../features/commands/add-ai.js";
+import { setProfilePictureCommand } from "../features/commands/set-pp.js";
 
 const PREFIX = "!";
 
@@ -14,29 +15,41 @@ function parseCommand(text) {
 }
 
 /**
- * Router command teks. Hanya diproses jika dikirim oleh bot sendiri
- * dan hanya di dalam grup.
+ * Ambil teks dari berbagai jenis message.
+ */
+function extractText(message) {
+  return (
+    message?.conversation ||
+    message?.extendedTextMessage?.text ||
+    message?.imageMessage?.caption ||
+    ""
+  );
+}
+
+/**
+ * Router command teks. Hanya diproses jika dikirim oleh bot sendiri.
+ * Command !addai hanya jalan di grup, yang lain bisa di mana saja.
  */
 export async function handleCommand(event, sock) {
   try {
     const key = event?.key;
     const jid = key?.remoteJid;
-    if (!jid || !jid.endsWith("@g.us")) return;
-    if (!isSelf(key, sock)) return;
+    if (!jid || !isSelf(key, sock)) return;
 
-    const text =
-      event.message?.conversation ||
-      event.message?.extendedTextMessage?.text ||
-      "";
-
+    const text = extractText(event.message);
     const parsed = parseCommand(text);
     if (!parsed) return;
 
-    console.log("[command]", parsed.command, "in", jid);
+    const { command, args } = parsed;
+    console.log("[command]", command, "in", jid);
 
-    switch (parsed.command) {
+    switch (command) {
       case "addai":
+        if (!jid.endsWith("@g.us")) return;
         await addAiCommand(sock, jid);
+        break;
+      case "setpp":
+        await setProfilePictureCommand(sock, jid, event, args);
         break;
       default:
         break;
