@@ -294,11 +294,8 @@ async function handleMessage(event, sock) {
       return;
     }
 
-    if (self) {
-      if (event.message?.reactionMessage) {
-        await routeReaction(sock, jid, event.message.reactionMessage);
-        return;
-      }
+    if (self && event.message?.reactionMessage) {
+      await routeReaction(sock, jid, event.message.reactionMessage);
     }
   } catch (error) {
     console.error("[handler] error in handleMessage:", error?.message || error);
