@@ -1,0 +1,46 @@
+{
+  "name": "x-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp moderation and VOIP automation bot powered by Zapo JS.",
+  "type": "module",
+  "main": "src/app.js",
+  "license": "MIT",
+  "author": "dnz",
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "whatsapp",
+    "whatsapp-bot",
+    "zapo-bot",
+    "multi-device"
+  ],
+  "scripts": {
+    "start": "node main.js",
+    "lint": "eslint .",
+    "test": "node --import=./tests/setup.js --test",
+    "postinstall": "node patch.js"
+  },
+  "dependencies": {
+    "@roamhq/wrtc": "^0.10.0",
+    "@zapo-js/store-sqlite": "latest",
+    "@zapo-js/voip": "^1.4.0",
+    "better-sqlite3": "latest",
+    "dotenv": "latest",
+    "ffmpeg-static": "^5.3.0",
+    "libmlow-wasm-fork": "^0.2.0",
+    "pino": "latest",
+    "pino-pretty": "latest",
+    "ws": "latest",
+    "zapo-js": "^1.11.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "latest",
+    "eslint": "latest"
+  },
+  "allowScripts": {
+    "better-sqlite3": true,
+    "zapo-js": true,
+    "ffmpeg-static": true
+  }
+}
