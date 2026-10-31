@@ -1,4 +1,4 @@
-import { toUserJid as normalizeJid } from "zapo-js";
+﻿import { toUserJid as normalizeJid } from "zapo-js";
 
 export function toTimestamp(value) {
   if (value == null) return null;
@@ -38,6 +38,7 @@ export function isSelf(key, sock) {
 }
 
 export function toUserJid(jid) {
+  if (jid == null || typeof jid !== 'string' || !jid.includes('@')) return null;
   return normalizeJid(jid);
 }
 
