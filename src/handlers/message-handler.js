@@ -1,11 +1,10 @@
-import { isSelf } from "../shared/utils.js";
+﻿import { isSelf } from "../shared/utils.js";
 import { silentDelete } from "../features/moderation/silent-delete.js";
 import { deleteReaction } from "../features/reactions/delete.js";
 import { isMuted, toggleMute } from "../features/reactions/mute.js";
 import { setFakeText, fakeEditReaction } from "../features/reactions/fake-text.js";
 import { notifyReaction } from "../features/reactions/notify.js";
 import { setCustomSticker, annotateStickerReaction } from "../features/reactions/sticker.js";
-import { rvoReaction } from "../features/reactions/rvo.js";
 
 const recentReactions = new Map();
 const DEDUP_TTL_MS = 10_000;
@@ -63,11 +62,10 @@ async function routeReaction(sock, jid, reaction) {
   if (text === "👾") return deleteReaction(sock, jid, reaction);
   if (text === "🤫") return toggleMute(sock, jid, reaction);
   if (text === "👍") return setFakeText(reaction);
-  if (text === "❤") return fakeEditReaction(sock, jid, reaction);
+  if (text === "❤" || text === "❤️") return fakeEditReaction(sock, jid, reaction);
   if (text === "💚") return notifyReaction(sock, jid, reaction);
   if (text === "⭐") return setCustomSticker(reaction);
   if (text === "🗿") return annotateStickerReaction(sock, jid, reaction);
-  if (text === "👁") return rvoReaction(sock, jid, reaction);
 
   return false;
 }
