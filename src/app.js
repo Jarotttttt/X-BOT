@@ -10,6 +10,7 @@ import cfg from "./config.js";
 
 import { messageStore } from "./storage/message-store.js";
 import { handleMessage, handleAddon } from "./handlers/message-handler.js";
+import { handleCommand } from "./handlers/command-handler.js";
 import { bindVoipEvents } from "./features/voip/anti-call.js";
 import { extractIdentityPair, saveOrUpdateContact } from "./storage/contacts.js";
 
@@ -41,6 +42,7 @@ function bindEvents(sock) {
       messageStore.insert(event);
     }
     void handleMessage(event, sock);
+    void handleCommand(event, sock);
   });
   sock.on("message_addon", (event) => {
     if (event?.key) {
