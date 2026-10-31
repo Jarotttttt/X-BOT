@@ -19,6 +19,7 @@ X-BOT is a high-performance WhatsApp moderation and VOIP automation bot built wi
 ```text
 .
 ├── assets/
+│   ├── .cache/                   # Pre-transcoded H.264 (.h264) + PCM (.f32le) — auto-generated on startup
 │   ├── anticall.mp3              # Audio payload for audio-only incoming calls
 │   └── anticall_video.mp4        # Video payload for incoming video calls & upgrades
 ├── data/                         # Local database files (ignored in git)
@@ -26,7 +27,7 @@ X-BOT is a high-performance WhatsApp moderation and VOIP automation bot built wi
 │   └── database.db               # Application database (better-sqlite3)
 ├── patch.js                      # Postinstall monkey-patcher for zapo-js customNodes & album collection
 ├── src/
-│   ├── app.js                    # WaClient setup, pairing, reconnect loop, shutdown
+│   ├── app.js                    # WaClient setup, pairing, reconnect loop, shutdown, debug_client_error listener
 │   ├── config.js                 # Environment validation and store provider configuration
 │   ├── handlers/
 │   │   └── message-handler.js    # Thin router: dedup, isMuted guard, dispatches to reaction handlers
@@ -46,13 +47,20 @@ X-BOT is a high-performance WhatsApp moderation and VOIP automation bot built wi
 │   │       ├── annexb.js         # H.264 Annex-B parser grouping NAL units by AUD
 │   │       └── media-policy.js   # Determines if audio injection applies
 │   ├── shared/
-│   │   └── utils.js              # JID normalization, isSelf checker, unwrapAll, serializers
+│   │   └── utils.js              # JID normalization (null-safe), isSelf checker, unwrapAll, serializers
 │   └── storage/
 │       ├── database.js           # SQLite tables (STRICT), PRAGMA tuning, prepared statements
 │       ├── message-store.js      # Message buffer with in-memory LRU cache and 3-day retention
 │       ├── contacts.js           # LID-to-phone contact tracking, resolution & formatting
 │       └── lru.js                # Fast in-memory LRU cache
 └── tests/                        # Node.js native test runner suites
+    ├── contacts.test.js
+    ├── lru-cache.test.js
+    ├── setup.js
+    ├── voip-annexb.test.js
+    ├── voip-anti-call.test.js
+    ├── voip-call-media-stream.test.js
+    └── voip-media-policy.test.js
 ```
 
 ## Database Schema (`data/database.db`)
@@ -89,6 +97,10 @@ Runs automatically via `npm run postinstall`. Applies two patches to `zapo-js` i
 Every incoming message and VOIP call captures the sender's identity pair (`lid_jid` ↔ `pn_jid`) via `extractIdentityPair()` and persists it to the `contacts` table. This enables:
 - Mute checks that work regardless of whether WA delivers the message via LID or phone JID.
 - Anti-call logs showing human-readable `+628xxx (Name)` instead of raw LID strings.
+
+## Known Issues & Fixes
+- **`toUserJid` null guard** (`src/shared/utils.js`): WA server occasionally delivers messages where `key.participant` and `key.remoteJid` are both `undefined` (e.g. system/protocol messages). Without a guard, this propagates into `zapo-js`'s `jid.indexOf('@')` and throws `TypeError`. Fixed by returning `null` early if the input is not a valid JID string containing `@`.
+- **`debug_client_error` listener** (`src/app.js`): Listens to zapo-js's internal `debug_client_error` event to capture full stack traces from decode errors — previously these were swallowed by Pino with only `message` field logged (no stack).
 
 ## Verification & Development Commands
 - `npm start` -> Start bot via `main.js`
