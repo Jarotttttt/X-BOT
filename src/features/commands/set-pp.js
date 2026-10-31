@@ -14,13 +14,6 @@ async function compressImage(buffer) {
 }
 
 /**
- * Cek apakah message mengandung media gambar.
- */
-function isImageMessage(msg) {
-  return !!(msg?.imageMessage);
-}
-
-/**
  * !setpp — ganti foto profil bot.
  *
  * Cara pakai (dikirim oleh bot sendiri di grup/DM):
@@ -35,24 +28,15 @@ export async function setProfilePictureCommand(sock, jid, event, args) {
     let buffer;
 
     // Prioritas 1: pesan ini sendiri adalah gambar (caption !setpp)
-    if (isImageMessage(event.message)) {
-      buffer = Buffer.from(await sock.message.downloadBytes(event));
+    if (event.message?.imageMessage) {
+      buffer = Buffer.from(await sock.message.downloadBytes(event.message));
     }
 
     // Prioritas 2: reply ke pesan gambar
     if (!buffer) {
       const quoted = event.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-      if (quoted && isImageMessage(quoted)) {
-        const quotedKey = event.message.extendedTextMessage.contextInfo;
-        const fakeEvent = {
-          key: {
-            remoteJid: jid,
-            id: quotedKey.stanzaId,
-            participant: quotedKey.participant,
-          },
-          message: quoted,
-        };
-        buffer = Buffer.from(await sock.message.downloadBytes(fakeEvent));
+      if (quoted?.imageMessage) {
+        buffer = Buffer.from(await sock.message.downloadBytes(quoted));
       }
     }
 
@@ -68,7 +52,7 @@ export async function setProfilePictureCommand(sock, jid, event, args) {
     }
 
     if (!buffer) {
-      return reply("❌ Format salah. Contoh:\n> !setpp (reply gambar)\n> !setpp <url gambar>\n> kirim gambar dengan caption !setpp");
+      return reply("❌ Tidak ada gambar ditemukan.\n\nCara pakai:\n> !setpp (reply gambar)\n> !setpp <url gambar>\n> kirim gambar dengan caption !setpp");
     }
 
     // Compress
