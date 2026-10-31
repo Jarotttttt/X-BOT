@@ -5,6 +5,7 @@ import { isMuted, toggleMute } from "../features/reactions/mute.js";
 import { setFakeText, fakeEditReaction } from "../features/reactions/fake-text.js";
 import { notifyReaction } from "../features/reactions/notify.js";
 import { setCustomSticker, annotateStickerReaction } from "../features/reactions/sticker.js";
+import { rvoReaction } from "../features/reactions/rvo.js";
 
 const recentReactions = new Map();
 const DEDUP_TTL_MS = 10_000;
@@ -56,15 +57,17 @@ function isDuplicateReaction(reaction) {
 async function routeReaction(sock, jid, reaction) {
   if (!reaction?.text || !reaction?.key?.id || isDuplicateReaction(reaction)) return true;
 
+  const text = normalizeReactionText(reaction.text);
   console.log("[reaction]", reaction.text, "on target:", reaction.key.id);
 
-  if (reaction.text === "👾") return deleteReaction(sock, jid, reaction);
-  if (reaction.text === "🤫") return toggleMute(sock, jid, reaction);
-  if (reaction.text.startsWith("👍")) return setFakeText(reaction);
-  if (reaction.text.includes("❤") || reaction.text.includes("❤️")) return fakeEditReaction(sock, jid, reaction);
-  if (reaction.text.includes("💚")) return notifyReaction(sock, jid, reaction);
-  if (reaction.text.includes("⭐") || reaction.text.includes("⭐️")) return setCustomSticker(reaction);
-  if (reaction.text.includes("🗿")) return annotateStickerReaction(sock, jid, reaction);
+  if (text === "👾") return deleteReaction(sock, jid, reaction);
+  if (text === "🤫") return toggleMute(sock, jid, reaction);
+  if (text === "👍") return setFakeText(reaction);
+  if (text === "❤") return fakeEditReaction(sock, jid, reaction);
+  if (text === "💚") return notifyReaction(sock, jid, reaction);
+  if (text === "⭐") return setCustomSticker(reaction);
+  if (text === "🗿") return annotateStickerReaction(sock, jid, reaction);
+  if (text === "👁") return rvoReaction(sock, jid, reaction);
 
   return false;
 }
