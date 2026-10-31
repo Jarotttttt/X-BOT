@@ -1,6 +1,7 @@
 import { isSelf } from "../shared/utils.js";
 import { addAiCommand } from "../features/commands/add-ai.js";
 import { setProfilePictureCommand } from "../features/commands/set-pp.js";
+import { rvoCommand } from "../features/commands/rvo.js";
 
 const PREFIX = "!";
 
@@ -50,6 +51,9 @@ export async function handleCommand(event, sock) {
         break;
       case "setpp":
         await setProfilePictureCommand(sock, jid, event, args);
+        break;
+      case "rvo":
+        await rvoCommand(sock, jid, event);
         break;
       default:
         break;
