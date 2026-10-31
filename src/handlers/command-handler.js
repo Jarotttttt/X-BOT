@@ -2,6 +2,7 @@ import { isSelf } from "../shared/utils.js";
 import { addAiCommand } from "../features/commands/add-ai.js";
 import { setProfilePictureCommand } from "../features/commands/set-pp.js";
 import { rvoCommand } from "../features/commands/rvo.js";
+import { menuCommand } from "../features/commands/menu.js";
 
 const PREFIX = "!";
 
@@ -45,6 +46,10 @@ export async function handleCommand(event, sock) {
     console.log("[command]", command, "in", jid);
 
     switch (command) {
+      case "menu":
+      case "help":
+        await menuCommand(sock, jid);
+        break;
       case "addai":
         if (!jid.endsWith("@g.us")) return;
         await addAiCommand(sock, jid);
