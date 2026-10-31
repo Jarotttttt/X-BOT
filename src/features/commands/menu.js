@@ -17,7 +17,6 @@ Status: Active | Engine: zapo-js
 👍 \`Salin\` — Simpan template teks
 ❤️ \`Edit\` — Timpa teks pesan target
 💚 \`Notif\` — Spam reaksi transparansi
-🤡 \`Fake-Tag\` — Fake edit + mention member (@user)
 ⭐ \`Stiker\` — Simpan stiker custom
 🗿 \`Spam\` — Kirim 20 stiker anotasi
 
