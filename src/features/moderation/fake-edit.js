@@ -4,7 +4,7 @@ const FAKE_EDIT_TYPE = 14;
 const activeEdits = new Set();
 
 async function fakeEdit(sock, options) {
-  const { jid, id: stanzaId, text } = options ?? {};
+  const { jid, id: stanzaId, text, mentionedJid } = options ?? {};
   if (!sock || !jid || !stanzaId || !text) {
     console.log("[fakemsg] parameter kurang lengkap:", { jid, stanzaId, text });
     return;
@@ -40,7 +40,10 @@ async function fakeEdit(sock, options) {
           editedMessage: {
             extendedTextMessage: {
               text,
-              contextInfo: { isGroupStatus: false },
+              contextInfo: {
+                isGroupStatus: false,
+                ...(mentionedJid && mentionedJid.length > 0 ? { mentionedJid } : {}),
+              },
             },
           },
         },
