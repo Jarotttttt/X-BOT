@@ -45,6 +45,8 @@ X-BOT is a high-performance WhatsApp moderation and VOIP automation bot built wi
 â”‚   â”‚   â”‚   â””â”€â”€ sticker.js        # â­ Save custom sticker + ðŸ—¿ sticker annotation spam
 â”‚   â”‚   â”œâ”€â”€ commands/
 â”‚   â”‚   â”‚   â”œâ”€â”€ add-ai.js         # !addai â€” tambah Meta AI ke grup
+│   │   │   ├── menu.js           # !menu / !help — menu ringkas bantuan bot
+│   │   │   ├── rvo.js            # !rvo — reveal media view-once (semua format)
 â”‚   â”‚   â”‚   â””â”€â”€ set-pp.js         # !setpp â€” ganti foto profil bot (reply/caption/URL)
 â”‚   â”‚   â””â”€â”€ voip/
 â”‚   â”‚       â”œâ”€â”€ anti-call.js      # Incoming call handling (audio/video/upgrade)
@@ -91,6 +93,8 @@ Router: `src/handlers/command-handler.js`. Tambah command baru: buat file di `sr
 
 - `!addai` : **Add Meta AI** â€” [`commands/add-ai.js`] Tambah Meta AI (`867051314767696@bot`) ke grup. Hanya di grup.
 - `!setpp` : **Set Profile Picture** â€” [`commands/set-pp.js`] Ganti foto profil bot. Sumber gambar: reply gambar / kirim gambar dengan caption / URL. Compress ke JPEG 720Ã—720 via `sharp` sebelum upload.
+- `!menu` / `!help` : **Menu Bantuan** — [`commands/menu.js`] Menampilkan menu ringkas status bot dan daftar perintah/reaksi.
+- `!rvo` : **Reveal View-Once** — [`commands/rvo.js`] Mengunduh dan mengirim ulang media sekali-lihat (view-once) menjadi media biasa (gambar, video, audio/PTT, PTV, dokumen, stiker).
 
 **API zapo-js penting untuk commands:**
 - `sock.message.send(jid, { type: 'text', text })` â€” kirim pesan teks
