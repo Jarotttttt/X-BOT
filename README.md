@@ -1,6 +1,6 @@
 <div align="center">
   <h1>⚡ X-BOT — WhatsApp Moderation & VOIP Bot</h1>
-  <p><b>Bot WhatsApp berbasis zapo-js untuk moderasi grup dan penanganan panggilan.</b></p>
+  <p><b>Bot WhatsApp berkinerja tinggi berbasis zapo-js untuk moderasi grup, automasi perintah, dan penanganan panggilan VOIP.</b></p>
 
   [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
   [![zapo-js](https://img.shields.io/badge/Engine-zapo--js-7C3AED?style=flat-square)](https://zapo.to/)
@@ -9,101 +9,133 @@
 
 ---
 
-## Fitur
+## Fitur Utama
 
-### Reaksi moderasi (di grup)
+### 1. Moderasi via Reaksi Emoji (Khusus Grup)
 
-Reaksi harus berasal dari akun bot/owner. Perintah yang sama dideduplikasi sementara agar tidak dieksekusi berkali-kali.
+Aksi moderasi dipicu secara instan hanya ketika **akun bot/owner memberikan reaksi emoji** ke pesan target:
 
-| Reaksi | Perilaku di kode saat ini |
+| Reaksi | Aksi & Perilaku |
 | :---: | :--- |
-| 👾 | Menjalankan proses penghapusan senyap untuk pesan target. |
-| 🤫 | Toggle mute peserta target; ketika mute diaktifkan, pesan target ikut dihapus. Pesan selanjutnya dari peserta yang di-mute akan dihapus otomatis. |
-| 👍 | Menyimpan teks pesan target sebagai template fake edit. Teks target perlu tersedia di message store. |
-| ❤️ | Menjalankan fake edit menggunakan template tersimpan, atau teks default `HIDUP JOKOWI!` jika belum ada. |
-| 👁️ / 👁 | **Anti View-Once** — Mendownload media view-once target (gambar, video, atau voice note) dan mengirimkannya kembali ke chat sebagai media biasa tanpa batasan view-once. |
-
-> Saat ini handler tidak memiliki aksi 📢/📣; README ini mencerminkan perilaku yang ditemukan pada kode, bukan fitur yang mungkin pernah direncanakan.
-
-### Penanganan panggilan
-
-Panggilan masuk ditangani melalui VOIP, tanpa fallback mengirim voice note. Panggilan suara memutar `assets/anticall.mp3` saja. Panggilan video memutar `assets/anticall_video.mp4` satu kali sebagai video H.264 Baseline dan audio mono PCM melalui jalur VOIP langsung; MP3 tidak digunakan untuk panggilan video. Jika penelepon meminta upgrade panggilan suara ke video, bot menerima upgrade lalu mulai stream video dan audio klip (audio MP3 yang mungkin sudah berjalan sebelum upgrade tidak dapat ditarik kembali). Panggilan video diakhiri saat klip selesai; jika stream gagal, bot mencatat error tanpa fallback mengirim media sebagai chat.
+| 👾 | **Silent Delete** — Menghapus pesan target secara senyap menggunakan manipulasi status message dan pencabutan langsung (*immediate revocation*). |
+| 🤫 | **Toggle Mute** — Mengaktifkan/menonaktifkan mute pada pengirim pesan target (sadar identitas LID & No. Telepon). Pesan target dan pesan berikutnya akan otomatis dihapus senyap. |
+| 👍 | **Save Fake Text** — Mengambil teks dari pesan target dan menyimpannya sebagai template teks fake edit ke database. |
+| ❤️ / ❤ | **Fake Edit** — Mengubah teks pesan target menjadi template yang tersimpan (atau fallback ke `HIDUP JOKOWI!`). |
+| 💚 | **Notify Reaction** — Mengirimkan sekuens reaksi cepat dengan metadata transparansi sesi WhatsApp (*sessionTransparencyMetadata*). |
+| ⭐ | **Save Custom Sticker** — Menyimpan stiker pesan target ke database sebagai payload stiker anotasi. |
+| 🗿 | **Sticker Annotation Spam** — Mengirimkan 20 stiker yang ditautkan ke pesan target via asosiasi pesan (*associationType: 11*) dengan jeda 200ms. |
 
 ---
 
-## Struktur proyek
+### 2. Sistem Perintah Teks (`!`)
+
+Perintah teks dipicu secara eksklusif oleh pesan yang dikirim oleh akun bot sendiri:
+
+- `!addai` : **Tambah Meta AI ke Grup** — Menambahkan akun Meta AI (`867051314767696@bot`) ke grup aktif secara otomatis.
+- `!setpp` : **Ganti Foto Profil Bot** — Mengubah foto profil bot. Mendukung 3 metode:
+  - Balas (*reply*) ke pesan gambar dengan `!setpp`
+  - Kirim gambar langsung dengan caption `!setpp`
+  - Mengirim URL gambar: `!setpp https://example.com/foto.jpg`  
+  *(Gambar otomatis di-resize dan dikompres ke JPEG 720×720 via `sharp`)*
+- `!rvo` : **Reveal View-Once** — Mengunduh dan mengirim ulang media sekali-lihat (*view-once*) menjadi media biasa. Mendukung gambar, video, pesan suara (PTT/audio), video bulat (PTV), dokumen, dan stiker.
+  - *Cara pakai*: Balas (*reply*) ke pesan view-once dengan `!rvo`.
+
+---
+
+### 3. Penanganan Panggilan Masuk (VOIP Anti-Call)
+
+Panggilan masuk ditangani otomatis melalui subsistem VOIP berbasis WebRTC:
+- **Anti-Spam Throttling**: Panggilan berulang dari nomor yang sama dalam rentang 10 detik otomatis ditolak untuk mencegah overload.
+- **Panggilan Suara**: Diterima -> jeda 1,5 detik -> menyuntikkan audio `assets/anticall.mp3` langsung ke track WebRTC -> panggilan diakhiri setelah audio selesai.
+- **Panggilan Video**: Diterima -> menunggu track video aktif -> memutar video pre-transcoded Baseline H.264 dan audio PCM Float32 (`assets/.cache`) dengan mode copy passthrough stream FFmpeg (< 2% CPU) -> panggilan diakhiri saat video selesai.
+- **Upgrade Panggilan**: Permintaan upgrade audio-ke-video (*UpgradeRequestV2*) otomatis disetujui dan langsung beralih ke stream video.
+
+---
+
+## Struktur Proyek
 
 ```text
 .
-├── assets/                         # Media panggilan suara dan video
-├── data/                           # Database autentikasi dan data aplikasi lokal
+├── assets/                         # Aset media panggilan suara dan video
+│   └── .cache/                     # Cache H.264 & PCM pre-transcoded (otomatis dibuat)
+├── data/                           # Database SQLite (kredensial auth & aplikasi)
 ├── src/
-│   ├── app.js                      # Startup, koneksi, lifecycle dan event
-│   ├── config.js                   # Environment dan konfigurasi store
-│   ├── handlers/message-handler.js  # Routing pesan dan reaksi
+│   ├── app.js                      # Lifecycle aplikasi, koneksi, dan listener event
+│   ├── config.js                   # Validasi variabel lingkungan & konfigurasi store
+│   ├── handlers/
+│   │   ├── message-handler.js      # Router pesan masuk & reaksi moderasi
+│   │   └── command-handler.js      # Router perintah teks (prefix "!")
 │   ├── features/
-│   │   ├── moderation/             # Silent delete dan fake edit
-│   │   ├── voip/anti-call.js       # Penanganan panggilan dan streaming media VOIP
-│   │   └── voip/annexb.js          # Pengelompokan H.264 Annex-B access unit
-│   ├── shared/utils.js             # Helper JID dan serialisasi pesan
+│   │   ├── moderation/             # Logika silent delete & fake edit
+│   │   ├── reactions/              # Handler reaksi emoji (👾, 🤫, 👍, ❤️, 💚, ⭐, 🗿)
+│   │   ├── commands/               # Handler perintah (!addai, !setpp, !rvo)
+│   │   └── voip/                   # Pipeline streaming media VOIP & parser Annex-B
+│   ├── shared/
+│   │   └── utils.js                # Normalisasi JID null-safe & utilitas pesan
 │   └── storage/
-│       ├── database.js             # Skema SQLite dan prepared statements
-│       └── message-store.js        # Penyimpanan pesan target (retensi 3 hari)
-├── main.js                         # Entry point kompatibel
+│       ├── database.js             # Skema tabel SQLite (STRICT mode) & query
+│       ├── message-store.js        # Penyimpanan pesan target (retensi 3 hari + LRU)
+│       ├── contacts.js             # Resolusi & pemetaan kontak LID ↔ No. Telepon
+│       └── lru.js                  # Fast in-memory LRU cache
+├── tests/                          # Rangkaian pengujian unit native Node.js
+├── main.js                         # Entry point kompatibilitas
+├── patch.js                        # Monkey-patcher otomatis untuk zapo-js
 ├── package.json
-├── .env.example                    # Contoh konfigurasi
 └── README.md
 ```
 
-Database autentikasi WhatsApp dan database fitur aplikasi dipisahkan. Message store menyimpan pesan yang diperlukan untuk fitur reaksi dan membersihkan pesan lebih tua dari tiga hari.
+---
+
+## Persyaratan Sistem
+
+- **Node.js**: Versi 22 atau lebih baru (ES Modules).
+- **Sistem Operasi**: Windows, Linux, atau macOS dengan dependensi compiler native (untuk SQLite & WebRTC).
+- **Nomor WhatsApp**: Digunakan untuk autentikasi pairing code.
 
 ---
 
-## Persyaratan
+## Instalasi & Menjalankan Bot
 
-- Node.js 22 atau lebih baru.
-- Dependensi native yang dibutuhkan paket SQLite/VOIP berhasil dipasang pada sistem operasi.
-- Nomor WhatsApp untuk pairing.
+1. **Clone repository dan pasang dependensi:**
+   ```bash
+   git clone https://github.com/Jarotttttt/X-BOT.git
+   cd X-BOT
+   npm install
+   ```
+   *(Script `patch.js` akan otomatis berjalan setelah instalasi paket)*
 
-## Instalasi dan konfigurasi
+2. **Konfigurasi Environment:**
+   Buat file `.env` di root direktori:
+   ```env
+   BOT_NUMBER=628xxxxxxxxxx
+   SESSION_ID=default
+   ```
 
-```bash
-npm install
-```
+3. **Jalankan Bot:**
+   ```bash
+   npm start
+   ```
 
-Salin `.env.example` menjadi `.env`, kemudian isi konfigurasi:
+4. **Tautkan Perangkat:**
+   Salin kode pairing yang muncul di terminal, lalu buka WhatsApp di ponsel:  
+   **Perangkat tertaut** -> **Tautkan perangkat** -> **Tautkan dengan nomor telepon saja**.
 
-```env
-BOT_NUMBER=628xxxxxxxxxx
-SESSION_ID=default
-```
+---
 
-`BOT_NUMBER` dan `SESSION_ID` wajib. Pairing code dibuat otomatis oleh WhatsApp berdasarkan nomor; tidak perlu mengatur custom pairing code. `ICEL_DATA_DIR` opsional untuk memilih direktori data lain; jika tidak diisi, data disimpan di `data/`.
-
-Jika koneksi terputus tanpa logout, bot mencoba reconnect dengan exponential backoff dari 3 detik hingga maksimum 60 detik; saat koneksi terbuka kembali, jeda direset.
-
-Jalankan bot:
-
-```bash
-npm start
-```
-
-Gunakan pairing code yang tampil di terminal melalui WhatsApp: **Perangkat tertaut → Tautkan perangkat → Tautkan dengan nomor telepon saja**. Kode tidak lagi ditentukan manual oleh konfigurasi.
-
-## Perintah pengembangan
+## Perintah Pengembangan & Pengujian
 
 ```bash
+# Menjalankan linter
 npm run lint
+
+# Menjalankan unit tests
 npm test
+
+# Menjalankan patch zapo-js secara manual (jika diperlukan)
+node patch.js
 ```
 
-`npm test` memakai Node.js test runner. Pastikan tes ditambahkan ke proyek; bila belum ada, runner dapat selesai tanpa menjalankan tes.
-
-## Catatan operasional
-
-- Jaga kerahasiaan `.env`, kredensial pairing, serta database autentikasi di `data/`.
-- Penghapusan senyap dan fake edit menggunakan perilaku protokol WhatsApp yang dapat berubah atau tidak dijamin oleh WhatsApp; uji dengan hati-hati.
-- Tabel lama yang tidak digunakan tidak dihapus otomatis saat startup; perubahan/pembersihan skema perlu dilakukan melalui migrasi yang disengaja dan backup.
+---
 
 ## Lisensi
 
