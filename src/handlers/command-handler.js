@@ -4,6 +4,7 @@ import { setProfilePictureCommand } from "../features/commands/set-pp.js";
 import { rvoCommand } from "../features/commands/rvo.js";
 import { menuCommand } from "../features/commands/menu.js";
 import { bussCommand } from "../features/commands/buss.js";
+import { listBungkamCommand } from "../features/commands/list-bungkam.js";
 
 const PREFIX = "!";
 
@@ -64,6 +65,10 @@ export async function handleCommand(event, sock) {
       case "buss":
       case "card":
         await bussCommand(sock, jid, event, args);
+        break;
+      case "listbungkam":
+      case "listmute":
+        await listBungkamCommand(sock, jid);
         break;
       default:
         break;

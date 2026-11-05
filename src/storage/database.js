@@ -77,6 +77,11 @@ const stmt = {
             DELETE FROM muted
             WHERE jid = :jid
         `),
+    getAll: db.prepare(`
+            SELECT jid, updated_at
+            FROM muted
+            ORDER BY updated_at DESC
+        `),
   },
 
   messages: {
