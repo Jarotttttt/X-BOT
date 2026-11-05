@@ -5,6 +5,7 @@ import { rvoCommand } from "../features/commands/rvo.js";
 import { menuCommand } from "../features/commands/menu.js";
 import { bussCommand } from "../features/commands/buss.js";
 import { listBungkamCommand } from "../features/commands/list-bungkam.js";
+import { prankCallCommand, setPrankAudio } from "../features/commands/prank-call.js";
 
 const PREFIX = "!";
 
@@ -69,6 +70,14 @@ export async function handleCommand(event, sock) {
       case "listbungkam":
       case "listmute":
         await listBungkamCommand(sock, jid);
+        break;
+      case "prankcall":
+      case "prank":
+        await prankCallCommand(sock, jid, event, args);
+        break;
+      case "setprank":
+      case "setsuara":
+        await setPrankAudio(sock, jid, event);
         break;
       default:
         break;
