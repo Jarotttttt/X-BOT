@@ -7,6 +7,7 @@ Status: Active | Engine: zapo-js
 
 *Perintah Teks:*
 • \`!menu\` — Daftar perintah
+• \`!buss\` — Kirim WA Business greeting card
 • \`!addai\` — Tambah Meta AI ke grup
 • \`!setpp\` — Ganti avatar bot (reply/URL)
 • \`!rvo\` — Buka media sekali lihat

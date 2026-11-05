@@ -3,6 +3,7 @@ import { addAiCommand } from "../features/commands/add-ai.js";
 import { setProfilePictureCommand } from "../features/commands/set-pp.js";
 import { rvoCommand } from "../features/commands/rvo.js";
 import { menuCommand } from "../features/commands/menu.js";
+import { bussCommand } from "../features/commands/buss.js";
 
 const PREFIX = "!";
 
@@ -59,6 +60,10 @@ export async function handleCommand(event, sock) {
         break;
       case "rvo":
         await rvoCommand(sock, jid, event);
+        break;
+      case "buss":
+      case "card":
+        await bussCommand(sock, jid, event, args);
         break;
       default:
         break;
