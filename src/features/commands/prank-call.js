@@ -82,24 +82,27 @@ export async function prankCallCommand(sock, jid, event, args) {
     );
   }
 
-  // Bersihkan karakter non-digit jika menginput nomor HP langsung
-  let targetJid;
+  let inputJid;
   if (targetRaw.includes("@")) {
-    targetJid = toUserJid(targetRaw);
+    inputJid = toUserJid(targetRaw);
   } else {
     const cleanedNumber = targetRaw.replace(/\D/g, "");
     if (!cleanedNumber || cleanedNumber.length < 8) {
       return reply("❌ Nomor tujuan tidak valid. Masukkan nomor dengan kode negara (contoh: 628123456789).");
     }
-    targetJid = `${cleanedNumber}@s.whatsapp.net`;
+    inputJid = `${cleanedNumber}@s.whatsapp.net`;
   }
 
-  // Jika di database ada pemetaan LID untuk target tersebut, kita bisa gunakan LID atau PN
-  const contact = getContactByJid(targetJid);
-  const dialedJid = contact?.lid_jid || targetJid;
-  const targetDisplay = contact?.pushName
-    ? `${contact.pushName} (${targetJid.split("@")[0]})`
-    : targetJid.split("@")[0];
+  // Resolusi kontak: pastikan kita mendapatkan Nomor HP asli (Phone Number JID)
+  const contact = getContactByJid(inputJid);
+  const phoneJid = contact?.pn_jid || (inputJid.endsWith("@s.whatsapp.net") ? inputJid : null);
+
+  // Selalu prioritaskan panggil ke Nomor Telepon asli (s.whatsapp.net)
+  const dialedJid = phoneJid || inputJid;
+  const phoneNumber = (phoneJid || inputJid).split("@")[0].split(":")[0];
+  const targetDisplay = contact?.push_name
+    ? `${contact.push_name} (+${phoneNumber})`
+    : `+${phoneNumber}`;
 
   // 2. Pilih audio file: audio kustom atau fallback ke anticall.mp3
   let activeAudioFile = DEFAULT_AUDIO_PATH;
@@ -111,7 +114,7 @@ export async function prankCallCommand(sock, jid, event, args) {
   }
 
   await reply(
-    `📞 *Memanggil Target Prank...*\nTarget: *+${targetDisplay}*\nAudio: _${path.basename(activeAudioFile)}_\n\n_Menunggu target mengangkat telepon..._`,
+    `📞 *Memanggil Target Prank...*\nTarget: *${targetDisplay}*\nAudio: _${path.basename(activeAudioFile)}_\n\n_Menunggu target mengangkat telepon..._`,
   );
 
   let callId = null;
@@ -161,7 +164,7 @@ export async function prankCallCommand(sock, jid, event, args) {
       await sock.voip.endCall(callId);
       await sock.message.send(jid, {
         type: "text",
-        text: `🎉 *Prank Call Berhasil!*\nSuara prank telah selesai didengarkan oleh target (+${targetDisplay}). 😆`,
+        text: `🎉 *Prank Call Berhasil!*\nSuara prank telah selesai didengarkan oleh target (${targetDisplay}). 😆`,
       });
     } catch (err) {
       console.error("[prankcall] error ending call on finish:", err?.message || err);
@@ -179,7 +182,7 @@ export async function prankCallCommand(sock, jid, event, args) {
     if (!audioLoaded) {
       sock.message.send(jid, {
         type: "text",
-        text: `📵 *Panggilan Tidak Diangkat / Ditolak*\nTarget: +${targetDisplay}\nAlasan: ${endReason}`,
+        text: `📵 *Panggilan Tidak Diangkat / Ditolak*\nTarget: ${targetDisplay}\nAlasan: ${endReason}`,
       }).catch(() => {});
     }
 
@@ -191,13 +194,13 @@ export async function prankCallCommand(sock, jid, event, args) {
     sock.on("voip_call_outbound_audio_finished", onAudioFinished);
     sock.on("voip_call_ended", onCallEnded);
 
-    // Mulai panggilan keluar 1:1
+    // Mulai panggilan keluar 1:1 langsung ke phone JID target
     callId = await sock.voip.startCall({
       peerJid: dialedJid,
       isVideo: false,
     });
 
-    console.log("[prankcall] startCall berhasil dimulai, ID:", callId, "target:", dialedJid);
+    console.log("[prankcall] startCall berhasil dimulai, ID:", callId, "dialed:", dialedJid);
 
     // Pasang safety timeout jika 35 detik tidak ada respon
     callTimeout = setTimeout(async () => {
@@ -212,6 +215,6 @@ export async function prankCallCommand(sock, jid, event, args) {
   } catch (err) {
     cleanup();
     console.error("[prankcall] Gagal memulai panggilan:", err?.message || err);
-    return reply(`❌ Gagal melakukan prank call ke +${targetDisplay}: ${err?.message || err}`);
+    return reply(`❌ Gagal melakukan prank call ke ${targetDisplay}: ${err?.message || err}`);
   }
 }
