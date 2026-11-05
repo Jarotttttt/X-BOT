@@ -7,9 +7,10 @@ Status: Active | Engine: zapo-js
 
 *Perintah Teks:*
 • \`!menu\` — Daftar perintah
-• \`!listbungkam\` — Lihat daftar user dibungkam/mute
+• \`!sw <caption/reply>\` — Upload Status WA HD (Anti-Kompres)
 • \`!prankcall <nomor/@user>\` — Panggilan prank bersuara ke nomor WA
 • \`!setprank\` — Set suara prank (reply Audio/VN)
+• \`!listbungkam\` — Lihat daftar user dibungkam/mute
 • \`!buss\` — Kirim WA Business greeting card
 • \`!addai\` — Tambah Meta AI ke grup
 • \`!setpp\` — Ganti avatar bot (reply/URL)

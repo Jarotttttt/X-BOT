@@ -163,6 +163,11 @@ const stmt = {
             WHERE pn_jid = ?
         `),
 
+    getAllRecipients: db.prepare(`
+            SELECT pn_jid, lid_jid
+            FROM contacts
+        `),
+
     insert: db.prepare(`
             INSERT INTO contacts (lid_jid, pn_jid, push_name, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?)
