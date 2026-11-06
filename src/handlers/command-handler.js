@@ -6,7 +6,6 @@ import { menuCommand } from "../features/commands/menu.js";
 import { bussCommand } from "../features/commands/buss.js";
 import { listBungkamCommand } from "../features/commands/list-bungkam.js";
 import { prankCallCommand, setPrankAudio } from "../features/commands/prank-call.js";
-import { statusUploadCommand } from "../features/commands/sw.js";
 
 const PREFIX = "!";
 
@@ -79,10 +78,6 @@ export async function handleCommand(event, sock) {
       case "setprank":
       case "setsuara":
         await setPrankAudio(sock, jid, event);
-        break;
-      case "sw":
-      case "upsw":
-        await statusUploadCommand(sock, jid, event, args);
         break;
       default:
         break;

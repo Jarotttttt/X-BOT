@@ -42,20 +42,6 @@ export function getContactByJid(jid) {
   return cacheContact(row ?? null);
 }
 
-export function getAllSavedJids() {
-  const rows = stmt.contacts.getAllRecipients.all();
-  const list = [];
-  const seen = new Set();
-  for (const r of rows) {
-    const target = r.pn_jid || r.lid_jid;
-    if (target && !seen.has(target)) {
-      seen.add(target);
-      list.push(target);
-    }
-  }
-  return list;
-}
-
 export function saveOrUpdateContact({ lidJid, pnJid, pushName }) {
   if (!lidJid || !pnJid) return null;
 
@@ -64,23 +50,21 @@ export function saveOrUpdateContact({ lidJid, pnJid, pushName }) {
   const cleanName = pushName?.trim() || null;
   const now = Math.floor(Date.now() / 1000);
 
-  let existing = getContactByJid(normLid) || getContactByJid(normPn);
+  const existing = getContactByJid(normLid) ?? getContactByJid(normPn);
 
   if (!existing) {
     try {
-      stmt.contacts.insert.run(normLid, normPn, cleanName, now, now);
-      existing = {
+      const info = stmt.contacts.insert.run(normLid, normPn, cleanName, now, now);
+      return cacheContact({
+        id: info.lastInsertRowid,
         lid_jid: normLid,
         pn_jid: normPn,
         push_name: cleanName,
         created_at: now,
         updated_at: now,
-      };
-      cacheContact(existing);
-      return existing;
+      });
     } catch {
-      existing = getContactByJid(normLid) || getContactByJid(normPn);
-      if (!existing) return null;
+      return null;
     }
   }
 
