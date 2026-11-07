@@ -25,3 +25,5 @@ Thumbs.db
 # Generated Media Cache
 assets/.cache/
 
+assets/contacts.csv
+assets/*_custom.*

@@ -74,8 +74,8 @@ export function saveOrUpdateContact({ lidJid, pnJid, pushName }) {
       existing.push_name = cleanName;
       existing.updated_at = now;
       cacheContact(existing);
-    } catch {
-      // ignore concurrent update collision
+    } catch (err) {
+      void err;
     }
   }
 

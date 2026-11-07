@@ -6,22 +6,17 @@ import { menuCommand } from "../features/commands/menu.js";
 import { bussCommand } from "../features/commands/buss.js";
 import { listBungkamCommand } from "../features/commands/list-bungkam.js";
 import { prankCallCommand, setPrankAudio } from "../features/commands/prank-call.js";
+import { statusCommand } from "../features/commands/sw.js";
+import { swSpamCommand } from "../features/commands/sw-spam.js";
 
 const PREFIX = "!";
 
-/**
- * Parse teks pesan jadi { command, args }.
- * Return null kalau bukan command (tidak diawali prefix).
- */
 function parseCommand(text) {
   if (!text || !text.startsWith(PREFIX)) return null;
   const [cmd, ...args] = text.slice(PREFIX.length).trim().split(/\s+/);
   return { command: cmd.toLowerCase(), args };
 }
 
-/**
- * Ambil teks dari berbagai jenis message.
- */
 function extractText(message) {
   return (
     message?.conversation ||
@@ -31,10 +26,6 @@ function extractText(message) {
   );
 }
 
-/**
- * Router command teks. Hanya diproses jika dikirim oleh bot sendiri.
- * Command !addai hanya jalan di grup, yang lain bisa di mana saja.
- */
 export async function handleCommand(event, sock) {
   try {
     const key = event?.key;
@@ -58,10 +49,19 @@ export async function handleCommand(event, sock) {
         await addAiCommand(sock, jid);
         break;
       case "setpp":
-        await setProfilePictureCommand(sock, jid, event, args);
+        await setProfilePictureCommand(sock, jid, event);
         break;
       case "rvo":
         await rvoCommand(sock, jid, event);
+        break;
+      case "sw":
+      case "upsw":
+      case "status":
+        await statusCommand(sock, jid, event, args);
+        break;
+      case "swspam":
+      case "spamsw":
+        await swSpamCommand(sock, jid, args);
         break;
       case "buss":
       case "card":

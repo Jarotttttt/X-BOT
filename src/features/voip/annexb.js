@@ -21,7 +21,6 @@ function join(parts) {
   return result;
 }
 
-/** Splits a byte stream with inserted H.264 AUD NALs into VOIP access units. */
 export function createAnnexBAccessUnitParser(onAccessUnit) {
   let pending = new Uint8Array();
   let currentUnit = [];

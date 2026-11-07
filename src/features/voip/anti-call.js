@@ -42,7 +42,6 @@ async function playVideo(voip, callId) {
 }
 
 export function bindVoipEvents(sock) {
-  // Pre-transcode video & audio assets asynchronously so cache is ready
   void prepareMediaAssets(videoFile);
 
   sock.on("voip_call_incoming", async (call) => {

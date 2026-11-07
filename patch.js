@@ -5,13 +5,6 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ─────────────────────────────────────────────────────────────
-// PATCH 1: CUSTOM NODES OVERRIDE
-// zapo-js secara default hanya menumpuk node (content.push).
-// Patch ini memastikan jika node dengan tag yang sama sudah ada,
-// node lama akan digantikan (override), bukan ditumpuk ganda.
-// ─────────────────────────────────────────────────────────────
-
 const targetBuilders = [
   path.join(__dirname, "node_modules/zapo-js/dist/esm/transport/node/builders/message.js"),
   path.join(__dirname, "node_modules/zapo-js/dist/transport/node/builders/message.js"),
@@ -63,11 +56,6 @@ for (const file of targetBuilders) {
     console.log(`[patch] berhasil patch customNodes: ${relativePath}`);
   }
 }
-
-// ─────────────────────────────────────────────────────────────
-// PATCH 2: ALBUM COLLECTION MEDIATYPE
-// Menambahkan tipe collection agar zapo-js mendukung albumMessage.
-// ─────────────────────────────────────────────────────────────
 
 const albumTargets = [
   ...["dist", "dist/esm"].flatMap((base) => [

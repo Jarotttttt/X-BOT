@@ -104,14 +104,13 @@ export async function ensureTranscodedMedia(videoPath) {
         isCached: true,
       };
     }
-  } catch {
-    // Cache invalid or not found, proceed to generate
+  } catch (err) {
+    void err;
   }
 
   try {
     await fs.mkdir(cacheDir, { recursive: true });
 
-    // Video pre-transcoding
     await runFfmpegAsync([
       "-y",
       "-threads", "2",
@@ -134,7 +133,6 @@ export async function ensureTranscodedMedia(videoPath) {
       cachedVideo,
     ]);
 
-    // Audio pre-transcoding
     await runFfmpegAsync([
       "-y",
       "-threads", "2",

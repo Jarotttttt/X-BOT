@@ -1,4 +1,4 @@
-﻿import fs from "node:fs/promises";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { clearTimeout } from "node:timers";
 
@@ -86,7 +86,6 @@ function bindConnectionEvents(sock) {
   let reconnectTimer = null;
   let reconnectAttempt = 0;
 
-  // Tangkap full stack trace dari internal zapo-js error (decode_error path)
   sock.on("debug_client_error", ({ error }) => {
     console.error("[wa-internal-error]", error?.stack || error?.message || error);
   });

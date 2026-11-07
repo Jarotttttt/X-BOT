@@ -11,25 +11,19 @@ const ASSETS_DIR = path.resolve(__dirname, "../../../assets");
 const CUSTOM_AUDIO_PATH = path.join(ASSETS_DIR, "prankcall_custom.mp3");
 const DEFAULT_AUDIO_PATH = path.join(ASSETS_DIR, "anticall.mp3");
 
-// Timeout safety jika panggilan tidak kunjung diangkat / berakhir (35 detik)
 const CALL_MAX_TIMEOUT_MS = 35_000;
 
-/**
- * Menyimpan audio kustom untuk prank call dari pesan VN / Audio
- */
 export async function setPrankAudio(sock, jid, event) {
   const reply = (text) => sock.message.send(jid, { type: "text", text });
 
   try {
     let audioMessage = null;
 
-    // Prioritas 1: Reply ke pesan audio / voice note
     const quoted = event.message?.extendedTextMessage?.contextInfo?.quotedMessage;
     if (quoted?.audioMessage) {
       audioMessage = quoted.audioMessage;
     }
 
-    // Prioritas 2: Pesan saat ini adalah audio dengan caption
     if (!audioMessage && event.message?.audioMessage) {
       audioMessage = event.message.audioMessage;
     }
@@ -40,7 +34,6 @@ export async function setPrankAudio(sock, jid, event) {
       );
     }
 
-    // Download audio buffer menggunakan zapo-js downloadBytes
     const buffer = Buffer.from(await sock.message.downloadBytes({ audioMessage }));
     if (!buffer || buffer.length === 0) {
       return reply("❌ Gagal mengunduh audio. Pastikan media masih valid di WhatsApp.");
@@ -57,9 +50,6 @@ export async function setPrankAudio(sock, jid, event) {
   }
 }
 
-/**
- * Memulai panggilan prank ke target nomor WhatsApp dengan injeksi audio
- */
 export async function prankCallCommand(sock, jid, event, args) {
   const reply = (text) => sock.message.send(jid, { type: "text", text });
 
@@ -67,10 +57,8 @@ export async function prankCallCommand(sock, jid, event, args) {
     return reply("❌ Fitur VOIP belum siap atau tidak aktif pada bot.");
   }
 
-  // 1. Ekstrak target JID
   let targetRaw = (args[0] || "").trim();
 
-  // Cek jika user mention (@user)
   const mentions = event.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
   if (mentions.length > 0) {
     targetRaw = mentions[0];
@@ -93,18 +81,15 @@ export async function prankCallCommand(sock, jid, event, args) {
     inputJid = `${cleanedNumber}@s.whatsapp.net`;
   }
 
-  // Resolusi kontak: pastikan kita mendapatkan Nomor HP asli (Phone Number JID)
   const contact = getContactByJid(inputJid);
   const phoneJid = contact?.pn_jid || (inputJid.endsWith("@s.whatsapp.net") ? inputJid : null);
 
-  // Selalu prioritaskan panggil ke Nomor Telepon asli (s.whatsapp.net)
   const dialedJid = phoneJid || inputJid;
   const phoneNumber = (phoneJid || inputJid).split("@")[0].split(":")[0];
   const targetDisplay = contact?.push_name
     ? `${contact.push_name} (+${phoneNumber})`
     : `+${phoneNumber}`;
 
-  // 2. Pilih audio file: audio kustom atau fallback ke anticall.mp3
   let activeAudioFile = DEFAULT_AUDIO_PATH;
   try {
     await fs.access(CUSTOM_AUDIO_PATH);
@@ -121,7 +106,6 @@ export async function prankCallCommand(sock, jid, event, args) {
   let audioLoaded = false;
   let callTimeout = null;
 
-  // Cleanup helper
   const cleanup = () => {
     if (callTimeout) {
       clearTimeout(callTimeout);
@@ -132,7 +116,6 @@ export async function prankCallCommand(sock, jid, event, args) {
     sock.off("voip_call_ended", onCallEnded);
   };
 
-  // Listener ketika state berubah (misal Active / diangkat)
   const onStateChange = async (call) => {
     if (call.callId !== callId) return;
 
@@ -141,7 +124,6 @@ export async function prankCallCommand(sock, jid, event, args) {
       console.log("[prankcall] Panggilan diangkat oleh target:", targetDisplay, "callId:", callId);
 
       try {
-        // Beri jeda 1 detik agar audio channel stabil, lalu load audio
         await new Promise((r) => setTimeout(r, 1000));
         await sock.voip.loadAudio(callId, activeAudioFile);
         console.log("[prankcall] Audio prank berhasil diinjeksi ke target:", callId);
@@ -149,14 +131,13 @@ export async function prankCallCommand(sock, jid, event, args) {
         console.error("[prankcall] Gagal inject audio:", err?.message || err);
         try {
           await sock.voip.endCall(callId);
-        } catch {
-          // ignore
+        } catch (err) {
+          void err;
         }
       }
     }
   };
 
-  // Listener ketika pemutaran audio selesai
   const onAudioFinished = async (call) => {
     if (call.callId !== callId) return;
     console.log("[prankcall] Audio prank selesai diputar. Mengakhiri panggilan:", callId);
@@ -173,7 +154,6 @@ export async function prankCallCommand(sock, jid, event, args) {
     }
   };
 
-  // Listener ketika panggilan berakhir
   const onCallEnded = (call) => {
     if (call.callId !== callId) return;
     const endReason = call.stateData?.endReason || "selesai";
@@ -194,7 +174,6 @@ export async function prankCallCommand(sock, jid, event, args) {
     sock.on("voip_call_outbound_audio_finished", onAudioFinished);
     sock.on("voip_call_ended", onCallEnded);
 
-    // Mulai panggilan keluar 1:1 langsung ke phone JID target
     callId = await sock.voip.startCall({
       peerJid: dialedJid,
       isVideo: false,
@@ -202,13 +181,12 @@ export async function prankCallCommand(sock, jid, event, args) {
 
     console.log("[prankcall] startCall berhasil dimulai, ID:", callId, "dialed:", dialedJid);
 
-    // Pasang safety timeout jika 35 detik tidak ada respon
     callTimeout = setTimeout(async () => {
       console.log("[prankcall] Timeout panggilan habis untuk:", callId);
       try {
         await sock.voip.endCall(callId);
-      } catch {
-        // ignore
+      } catch (err) {
+        void err;
       }
       cleanup();
     }, CALL_MAX_TIMEOUT_MS);

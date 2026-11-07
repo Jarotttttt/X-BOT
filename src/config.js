@@ -21,7 +21,7 @@ const normalizeNumber = (value) => value.replace(/\D/g, "");
 const botNumber = normalizeNumber(process.env.BOT_NUMBER);
 
 if (!botNumber) {
-	throw new Error("BOT_NUMBER must contain a valid WhatsApp number.");
+  throw new Error("BOT_NUMBER must contain a valid WhatsApp number.");
 }
 
 const res = (...paths) => path.resolve(import.meta.dirname, "..", ...paths);
@@ -57,7 +57,7 @@ const store = createStore({
 });
 
 export default Object.freeze({
-	botNumber,
+  botNumber,
   sessionId: process.env.SESSION_ID.trim(),
   path: pathConfig,
   store,

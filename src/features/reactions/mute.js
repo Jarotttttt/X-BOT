@@ -3,7 +3,7 @@ import { stmt } from "../../storage/database.js";
 import { getContactByJid } from "../../storage/contacts.js";
 import { silentDelete } from "../moderation/silent-delete.js";
 
-export function getTargetJids(key) {
+function getTargetJids(key) {
   const rawJids = [...new Set([key?.participant, key?.participantAlt].filter(Boolean).map(toUserJid))];
   const allJids = new Set(rawJids);
 

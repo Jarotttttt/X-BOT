@@ -1,18 +1,19 @@
-/**
- * !menu / !help — menampilkan daftar fitur dan perintah bot (Gaya Compact & Simple).
- */
 export async function menuCommand(sock, jid) {
   const menuText = `*X-BOT AUTOMATION*
 Status: Active | Engine: zapo-js
 
 *Perintah Teks:*
 • \`!menu\` — Daftar perintah
+• \`!sw <teks/reply>\` — Upload status WhatsApp (152 kontak aktif)
+• \`!swspam <jumlah> [teks]\` — Spam upload status WhatsApp
+• \`!swspam stop\` — Stop proses spam status
+• \`!sw hapus\` — Hapus status WhatsApp terakhir
 • \`!listbungkam\` — Lihat daftar user dibungkam/mute
 • \`!prankcall <nomor/@user>\` — Panggilan prank bersuara ke nomor WA
 • \`!setprank\` — Set suara prank (reply Audio/VN)
-• \`!buss\` — Kirim WA Business greeting card
+• \`!buss --t <pesan> [--title <judul>] [--body <desc>] [--img <url>]\` — Kirim WA Business Card custom
 • \`!addai\` — Tambah Meta AI ke grup
-• \`!setpp\` — Ganti avatar bot (reply/URL)
+• \`!setpp\` — Ganti avatar bot (reply gambar)
 • \`!rvo\` — Buka media sekali lihat
 
 *Reaksi Bot (Moderasi):*

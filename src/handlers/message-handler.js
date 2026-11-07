@@ -1,4 +1,4 @@
-﻿import { isSelf } from "../shared/utils.js";
+import { isSelf } from "../shared/utils.js";
 import { silentDelete } from "../features/moderation/silent-delete.js";
 import { deleteReaction } from "../features/reactions/delete.js";
 import { isMuted, toggleMute } from "../features/reactions/mute.js";

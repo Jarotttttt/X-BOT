@@ -1,9 +1,6 @@
 import { stmt } from "../../storage/database.js";
 import { formatContact, getContactByJid } from "../../storage/contacts.js";
 
-/**
- * Format timestamp UNIX ke string waktu lokal yang rapi
- */
 function formatTime(unixSec) {
   if (!unixSec) return "-";
   const date = new Date(unixSec * 1000);
@@ -14,9 +11,6 @@ function formatTime(unixSec) {
   });
 }
 
-/**
- * !listbungkam / !listmute — Menampilkan daftar semua user yang sedang dibungkam/mute.
- */
 export async function listBungkamCommand(sock, jid) {
   const reply = (text) => sock.message.send(jid, { type: "text", text });
 
@@ -27,7 +21,6 @@ export async function listBungkamCommand(sock, jid) {
       return reply("📋 *DAFTAR BUNGKAM (MUTED)*\n\nTidak ada user yang sedang dibungkam.");
     }
 
-    // Kelompokkan entri agar pasangan LID dan Nomor Telepon yang sama tidak muncul dobel
     const seenIdentities = new Set();
     const listEntries = [];
 
